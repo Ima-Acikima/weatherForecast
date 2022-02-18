@@ -4,11 +4,6 @@ export default {
         return {
             data: null,
             isOpen:false,
-            allLocations: [
-                'Kuala Lumpur',
-                'Ipoh',
-                'Johor Bharu'
-            ],
             searching:false,
             COUNTRIES
         }
@@ -33,10 +28,8 @@ export default {
     },
     methods: {
         async getData() {
-            console.log("getdata");
             navigator.geolocation.getCurrentPosition((pos)=> {
                 var crd = pos.coords;
-
                 this.getWeather(crd)
             })
 

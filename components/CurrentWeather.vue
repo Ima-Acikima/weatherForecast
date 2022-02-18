@@ -18,7 +18,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
-                                <input @focus="searching = true" type="text" placeholder="Search" class="focus:ring-0 focus:outline-none placeholder:italic placeholder:text-slate-400 placeholder:text-xs" />
+                                <input @focus="searching = true;blurSearch = false" @blur="blurSearch = true" v-model="searchText" type="text" placeholder="Search" class="focus:ring-0 focus:outline-none placeholder:italic placeholder:text-slate-400 placeholder:text-xs" />
                             </div>
                             <div @click="isOpen = !isOpen" class="flex items-center cursor-pointer space-x-2 justify-center location-btn" :class="{'open':isOpen}">
                                 <div class="text-sm">Location</div>
@@ -32,8 +32,9 @@
                     </div>
                     <div v-if="searching"
                         class="dropwdown-item right w-80 rounded-b-md shadow border text-gray-700 text-sm"
+                        v-click-outside="onClickOutside"
                     >
-                            <div class="p-2 flex space-x-2 border-b sticky" @click="selectCurrentLocation()">
+                            <div class="p-2 flex space-x-2 border-b sticky current-location" @click="selectCurrentLocation()">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -59,25 +60,74 @@
           </div>
 
       </div>
-      {{data}}
-      <WeatherCard  />
+      <WeatherCard :data="data" :current-temp="currentTemperatureRounded"  :weather-icon="weatherIcon" />
+
   </div>
 </template>
 
 <script>
-import WeatherMixin from "../mixins/weather"
 import {CITIES_COORDS} from "../constants/malaysiaCitiesCoord"
+import {COUNTRIES} from "../constants/countries"
+import vClickOutside from 'v-click-outside'
 export default {
-    mixins: [WeatherMixin],
+    directives: {
+      clickOutside: vClickOutside.directive
+    },
+    computed: {
+        currentTemperatureRounded() {
+            return this.data ? Math.round(this.data.main.temp) : null
+        },
+        currentCountry() {
+            if(this.data) {
+                const currCountry = this.COUNTRIES.find((country) => country.code == this.data.sys.country)
+                return currCountry.name
+            }
+            return 'Malaysia'
+        },
+        weatherIcon() {
+            return this.data?.weather[0].icon ?? '02n'
+        },
+        cities() {
+            if(this.searchText) {
+                const searchUC = this.searchText.toUpperCase()
+                const filtered = this.CITIES_COORDS.filter((city) => city.city.toUpperCase().includes(searchUC))
+                return filtered
+            }else {
+                return this.CITIES_COORDS
+            }
+        },
+    },
     data() {
         return {
-            cities:CITIES_COORDS
+            CITIES_COORDS,
+            COUNTRIES,
+             data: null,
+            isOpen:false,
+            searching:false,
+            searchText: null,
+            blurSearch:false
         }
     },
+    mounted() {
+        this.getData()
+    },
     methods: {
+         async getData() {
+            navigator.geolocation.getCurrentPosition((pos)=> {
+                var crd = pos.coords;
+                this.getWeather(crd)
+            })
+
+        },
+        async getWeather(coords) {
+            const response = await this.$axios.$get(`http://api.openweathermap.org/data/2.5/weather?lat=${coords.latitude}&lon=${coords.longitude}&appid=5f3819b22c7b564e4e62a670f1102556&units=metric`)
+            this.data = response
+        },
+
         selectCurrentLocation() {
             this.getData()
             this.searching = false
+             this.searchText = null
         },
         selectCity(city) {
             const params = {
@@ -86,6 +136,15 @@ export default {
             }
             this.getWeather(params)
             this.searching = false
+            this.searchText = city.city
+        },
+        filterOptions(e) {
+            console.log(e);
+        },
+        onClickOutside() {
+            if(this.blurSearch) {
+                this.searching = false
+            }
         }
     }
 }
@@ -117,7 +176,8 @@ export default {
     
 }
 
-.btn-dropdown .dropwdown-item .item:hover {
+.btn-dropdown .dropwdown-item .item:hover,
+.current-location:hover {
     --tw-bg-opacity: 1;
     background-color: rgb(229 231 235 / var(--tw-bg-opacity));
 }
