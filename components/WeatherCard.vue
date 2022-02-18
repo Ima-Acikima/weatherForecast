@@ -3,7 +3,7 @@
   
     <div class="col-span-2">
         <div>
-            CURRENT WEATHER
+            CURRENT WEATHER IN <span class="uppercase font-semibold">{{data.name}}</span> 
         </div>
         <div class="flex justify-center items-end">
             <img :src="`http://openweathermap.org/img/wn/${weatherIcon}@4x.png`" height="100" width="100"/>

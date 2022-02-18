@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-gray-100 h-screen">
+  <div class="bg-gray-100 h-full">
       <div class="static p-2 border bg-black border-b shadow flex justify-between header">
           <div class="flex w-2/3 mx-auto justify-between items-center">
             <div class="flex space-x-2 items-center">
@@ -61,7 +61,8 @@
 
       </div>
       <WeatherCard :data="data" :current-temp="currentTemperatureRounded"  :weather-icon="weatherIcon" />
-
+      <FiveDaysForecast v-if="currentCoords.latitude" :coords="currentCoords" />
+ 
   </div>
 </template>
 
@@ -105,7 +106,8 @@ export default {
             isOpen:false,
             searching:false,
             searchText: null,
-            blurSearch:false
+            blurSearch:false,
+            currentCoords: {}
         }
     },
     mounted() {
@@ -114,13 +116,16 @@ export default {
     methods: {
          async getData() {
             navigator.geolocation.getCurrentPosition((pos)=> {
-                var crd = pos.coords;
-                this.getWeather(crd)
+                this.currentCoords = {
+                    latitude: pos.coords.latitude,
+                    longitude: pos.coords.longitude,
+                };
+                this.getWeather()
             })
 
         },
-        async getWeather(coords) {
-            const response = await this.$axios.$get(`http://api.openweathermap.org/data/2.5/weather?lat=${coords.latitude}&lon=${coords.longitude}&appid=5f3819b22c7b564e4e62a670f1102556&units=metric`)
+        async getWeather() {
+            const response = await this.$axios.$get(`http://api.openweathermap.org/data/2.5/weather?lat=${this.currentCoords.latitude}&lon=${this.currentCoords.longitude}&appid=5f3819b22c7b564e4e62a670f1102556&units=metric`)
             this.data = response
         },
 
@@ -130,11 +135,12 @@ export default {
              this.searchText = null
         },
         selectCity(city) {
-            const params = {
+           
+            this.currentCoords = {
                 latitude:city.lat,
                 longitude:city.lng
             }
-            this.getWeather(params)
+            this.getWeather()
             this.searching = false
             this.searchText = city.city
         },
