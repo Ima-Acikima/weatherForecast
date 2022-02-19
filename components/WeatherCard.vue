@@ -1,21 +1,21 @@
 <template>
-  <div v-if="data" class="p-4 rounded-md shadow w-1/2 mx-auto bg-white mt-4 grid grid-cols-3 divide-x">
+  <div v-if="!loadingData" class="p-4 rounded-md shadow bg-white grid grid-cols-3 divide-x">
   
     <div class="col-span-2">
         <div>
-            CURRENT WEATHER IN <span class="uppercase font-semibold">{{data.name}}</span> 
+            CURRENT WEATHER IN <span class="uppercase font-semibold">{{weatherData.name}}</span> 
         </div>
         <div class="flex justify-center items-end">
-            <img :src="`http://openweathermap.org/img/wn/${weatherIcon}@4x.png`" height="100" width="100"/>
+            <img :src="`http://openweathermap.org/img/wn/${weatherData.weather[0].icon}@4x.png`" height="100" width="100"/>
             <div class="text-9xl bold">
-                {{currentTemp}}°
+                {{Math.round(weatherData.main.temp)}}°
             </div>
             <div class="items-baseline text-2xl mb-3">
                 C
             </div>
         </div>
         <div class="capitalize font-medium">
-            {{description}}
+            {{weatherData.weather[0].description}}
         </div>
     </div>
     <div class="grid grid-cols-1 divide-y text-gray-700 text-sm">
@@ -60,20 +60,13 @@
 </template>
 
 <script>
+import {mapGetters} from "vuex"
 export default {
-    props: {
-        data: Object,
-        weatherIcon: String,
-        currentTemp: Number
-
-    },
     computed: {
-        description() {
-            return this.data?.weather[0].description ?? ""
-        },
-        weatherData() {
-            return this.data ?? {main: {}}
-        }
+        ...mapGetters({
+            weatherData: "weather/weatherData",
+            loadingData: "weather/loadingData"
+        }),
     }
 }
 </script>

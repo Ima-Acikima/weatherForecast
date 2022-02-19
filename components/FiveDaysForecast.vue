@@ -1,5 +1,5 @@
 <template>
-    <div class="w-1/2 mx-auto mt-4 ">
+    <div v-if="Object.keys(coords).length">
         <span class="font-semibold capitalize">
             {{todayDate}} - {{nextFiveDaysDate}}
         </span>
@@ -19,28 +19,26 @@
 
                 </div>
             </div>
-             <!-- <div class="p-4 rounded-md shadow bg-white grid-grid-cols-6">
-                {{getDateMonth(groupedData.secondDay)}}
-            </div>
-             <div class="p-4 rounded-md shadow bg-white grid-grid-cols-6">
-                {{getDateMonth(groupedData.thirdDay)}}
-            </div>
-             <div class="p-4 rounded-md shadow bg-white grid-grid-cols-6">
-                {{getDateMonth(groupedData.fourthDay)}}
-            </div>
-             <div class="p-4 rounded-md shadow bg-white grid-grid-cols-6">
-                {{getDateMonth(groupedData.fifthDay)}}
-            </div> -->
+            
+        </div>
+    </div>
+    <div v-else class="p-4 rounded-md shadow w-1/2 mx-auto bg-white mt-4">
+        <div class="flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
         </div>
     </div>
 </template>
 
 <script>
+import {mapGetters} from "vuex"
 export default {
-    props: {
-        coords: Object
-    },
-    computed: {
+   computed: {
+        ...mapGetters({
+            coords: "weather/currentCoordinate",
+            weatherData: "weather/weatherData"
+        }),
         todayDate() {
             var nowDate = new Date(); 
             var date = nowDate.getDate()+' '+(this.month[nowDate.getMonth()])+' '+nowDate.getFullYear(); 
@@ -66,8 +64,14 @@ export default {
             month:["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"]
         }
     },
-    mounted() {
-        this.getWeather()
+    watch: {
+        coords: {
+            handler(val) {
+                if(val.latitude)
+                this.getWeather()
+            },
+            immediate: true
+        }
     },
     methods: {
          async getWeather() {

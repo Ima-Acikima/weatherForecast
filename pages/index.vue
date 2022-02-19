@@ -1,5 +1,5 @@
 <template>
-  <CurrentWeather/>
+  <MainPage/>
 </template>
 
 <script>

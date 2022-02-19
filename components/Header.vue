@@ -1,13 +1,12 @@
 <template>
-  <div class="bg-gray-100 h-full">
-      <div class="static p-2 border bg-black border-b shadow flex justify-between header">
+  <div class="static p-2 border bg-black border-b shadow flex justify-between header">
           <div class="flex w-2/3 mx-auto justify-between items-center">
             <div class="flex space-x-2 items-center">
                 <img src="~/assets/accuweather.svg" class="w-44"/>
-                <h1 v-if="data" class="text-white ml-2">
-                    {{data.name}}, {{currentCountry}} {{currentTemperatureRounded}}°<span style="font-size:0.5rem">C</span>
+                <h1 v-if="weatherData" class="text-white ml-2">
+                    {{weatherData.name}}, {{currentCountry}} {{Math.round(weatherData.main.temp)}}°<span style="font-size:0.5rem">C</span>
                 </h1>
-                <img :src="`http://openweathermap.org/img/wn/${weatherIcon}.png`" height="27" width="27"/>
+                <img :src="`http://openweathermap.org/img/wn/${weatherData.weather[0].icon}.png`" height="27" width="27"/>
             </div>
          
             <div class="flex items-center space-x-2">
@@ -60,33 +59,25 @@
           </div>
 
       </div>
-      <WeatherCard :data="data" :current-temp="currentTemperatureRounded"  :weather-icon="weatherIcon" />
-      <FiveDaysForecast v-if="currentCoords.latitude" :coords="currentCoords" />
- 
-  </div>
 </template>
 
 <script>
 import {CITIES_COORDS} from "../constants/malaysiaCitiesCoord"
 import {COUNTRIES} from "../constants/countries"
 import vClickOutside from 'v-click-outside'
+import { mapActions, mapGetters} from "vuex"
 export default {
     directives: {
       clickOutside: vClickOutside.directive
     },
     computed: {
-        currentTemperatureRounded() {
-            return this.data ? Math.round(this.data.main.temp) : null
-        },
+        ...mapGetters({
+            currentCoordinate: "weather/currentCoordinate",
+            weatherData: "weather/weatherData"
+        }),
         currentCountry() {
-            if(this.data) {
-                const currCountry = this.COUNTRIES.find((country) => country.code == this.data.sys.country)
-                return currCountry.name
-            }
-            return 'Malaysia'
-        },
-        weatherIcon() {
-            return this.data?.weather[0].icon ?? '02n'
+            const currCountry = this.COUNTRIES.find((country) => country.code == this.weatherData.sys.country)
+            return currCountry.name
         },
         cities() {
             if(this.searchText) {
@@ -102,31 +93,39 @@ export default {
         return {
             CITIES_COORDS,
             COUNTRIES,
-             data: null,
             isOpen:false,
             searching:false,
             searchText: null,
             blurSearch:false,
-            currentCoords: {}
         }
     },
     mounted() {
         this.getData()
     },
     methods: {
-         async getData() {
+        ...mapActions({
+            setCoordinate: "weather/setCoordinate",
+            setWeatherData: "weather/setWeatherData",
+            setLoadingData: "weather/setLoadingData"
+        }),
+        getData() {
             navigator.geolocation.getCurrentPosition((pos)=> {
-                this.currentCoords = {
+                this.setCoordinate({
                     latitude: pos.coords.latitude,
                     longitude: pos.coords.longitude,
-                };
+                })
+            
                 this.getWeather()
             })
 
         },
-        async getWeather() {
-            const response = await this.$axios.$get(`http://api.openweathermap.org/data/2.5/weather?lat=${this.currentCoords.latitude}&lon=${this.currentCoords.longitude}&appid=5f3819b22c7b564e4e62a670f1102556&units=metric`)
-            this.data = response
+        getWeather() {
+            this.setLoadingData(true)
+            this.$axios.$get(`http://api.openweathermap.org/data/2.5/weather?lat=${this.currentCoordinate.latitude}&lon=${this.currentCoordinate.longitude}&appid=5f3819b22c7b564e4e62a670f1102556&units=metric`)
+            .then((response)=> {
+                this.setWeatherData(response)
+                this.setLoadingData(false)
+            })
         },
 
         selectCurrentLocation() {
@@ -136,16 +135,13 @@ export default {
         },
         selectCity(city) {
            
-            this.currentCoords = {
+            this.setCoordinate({
                 latitude:city.lat,
                 longitude:city.lng
-            }
+            })
             this.getWeather()
             this.searching = false
             this.searchText = city.city
-        },
-        filterOptions(e) {
-            console.log(e);
         },
         onClickOutside() {
             if(this.blurSearch) {
@@ -178,7 +174,7 @@ export default {
     left:0;
     position: absolute;
     white-space: nowrap;
-    z-index: 2;
+    z-index: 10;
     
 }
 
